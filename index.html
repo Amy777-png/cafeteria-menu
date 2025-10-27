@@ -3,33 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>정반식당 오늘의 메뉴</title>
+  <title>정반식당 · SHINSEGAE</title>
   <style>
-    :root{--bg:#0b0f14;--card:#131922;--muted:#93a2b1;--accent:#4fc3f7;--ok:#8bc34a;--warn:#ffc107;--danger:#ff6b6b}
-    html,body{margin:0;padding:0;background:var(--bg);color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif}
-    .wrap{max-width:720px;margin:32px auto;padding:0 16px}
-    .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:20px}
-    h1{font-size:22px;margin:0 0 4px}
+    :root{--bg:#0b0f14;--card:#111823;--muted:#94a3b8;--accent:#e6002d;--accent-2:#b80024;--ok:#86efac;--warn:#fde047;--danger:#f87171}
+    html,body{margin:0;padding:0;background:linear-gradient(160deg,#0b0f14 0%,#0c1420 50%,#0e1624 100%);color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif}
+    .wrap{max-width:860px;margin:36px auto;padding:0 16px}
+    .card{background:rgba(17,24,35,.9);backdrop-filter: blur(6px);border:1px solid #1f2b3a;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,.35);padding:20px}
+    .brandbar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .brandbar .logo{width:124px;height:auto;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
+    .brandbar .badge{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--accent);color:#fff;font-weight:800;letter-spacing:.3px;border:1px solid #75151b}
+    h1{font-size:24px;margin:0 0 4px}
     .sub{color:var(--muted);font-size:13px}
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
-    button,select,input,textarea{background:#0f141b;color:#e8eef5;border:1px solid #223041;border-radius:10px;padding:10px 12px;font-size:14px}
-    button{cursor:pointer}
-    button.primary{background:var(--accent);color:#00131c;border:none}
+    button,select,input,textarea{background:#0f141b;color:#e8eef5;border:1px solid #223041;border-radius:12px;padding:10px 12px;font-size:14px}
+    button{cursor:pointer;transition:.2s transform ease}
+    button:active{transform:scale(.98)}
+    button.primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#fff;border:none}
     button.ghost{background:transparent;border:1px dashed #2b3b50;color:#b9c6d3}
+    .seg{display:flex;gap:6px;background:#0c1219;border:1px solid #223041;border-radius:12px;padding:4px}
+    .seg button{border:none;background:transparent;padding:8px 12px;border-radius:10px}
+    .seg button.active{background:var(--accent);color:#fff}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    .menu-today{border:1px solid #253243;border-radius:12px;padding:16px}
+    .menu-today{border:1px solid #253243;border-radius:14px;padding:16px;background:#0b1118}
     .menu-today h2{margin:0 0 6px;font-size:18px}
     .menu-today .date{color:var(--muted);font-size:13px}
-    .items{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-    .pill{display:inline-flex;align-items:center;gap:8px;background:#0f141b;border:1px solid #253243;border-radius:999px;padding:8px 12px;font-size:13px}
+    .items{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#0f141b;border:1px solid #253243;border-radius:999px;padding:10px 14px;font-size:13px}
     .week{margin-top:16px;padding-top:12px;border-top:1px dashed #2b3b50}
     .day{margin-top:10px}
-    .day h3{margin:0 0 6px;font-size:15px;color:#bfe2ff}
+    .day h3{margin:0 0 6px;font-size:15px;color:#ffb3bf}
     .empty{color:#97a6b5}
-    .admin{margin-top:20px}
+    .admin{margin-top:22px}
     details{border:1px solid #2b3b50;border-radius:12px}
     details[open]{background:#0f141b}
-    summary{cursor:pointer;padding:12px 14px;font-weight:600}
+    summary{cursor:pointer;padding:12px 14px;font-weight:700}
     .panel{padding:14px}
     .hint{font-size:12px;color:#aab6c2}
     .ok{color:var(--ok)}
@@ -44,12 +51,19 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>정반식당 오늘의 메뉴</h1>
-      <div class="sub">클릭 한 번으로 오늘 식단만 확인 · KST 기준 자동 날짜 인식</div>
+      <div class="brandbar">
+        <img id="brand-logo" class="logo" alt="SHINSEGAE logo"/>
+        <div>
+          <h1 style="margin:0">정반식당 오늘의 메뉴</h1>
+          <div class="sub">클릭 한 번으로 오늘 식단만 확인 · KST 기준 자동 날짜 인식</div>
+        </div>
+      </div>
 
       <div class="row">
-        <button id="btn-today" class="primary">오늘 메뉴 보기</button>
-        <button id="btn-week" class="ghost">이번 주 전체 보기</button>
+        <div class="seg" role="tablist" aria-label="보기 전환">
+          <button id="btn-today" class="active" aria-selected="true">오늘 메뉴 보기</button>
+          <button id="btn-week">이번 주 전체 보기</button>
+        </div>
         <select id="campus">
           <option value="main" selected>정반식당</option>
         </select>
@@ -103,38 +117,36 @@
       </div>
 
       <div class="footer">
-        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다. 여러 사람이 공유하려면 추후 Google Sheet/Firebase 연동을 추가로 설정하세요.
+        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다. 공유하려면 Gist RAW JSON을 <span class="code">?dataUrl=...</span> 로 연결하거나, Firebase/Sheets 연동을 추가하세요.
       </div>
     </div>
   </div>
 
 <script>
 // ====== 기본 설정 ======
-const PIN = '2580'; // 공유 배포 전에 꼭 변경하세요.
+const PIN = '2580'; // 배포 전에 꼭 변경하세요.
 const KST_OFFSET = 9 * 60; // minutes
 const storeKey = 'cafeteria.menus.v1';
 const weekdays = ['월','화','수','목','금'];
 
+// --- SHINSEGAE 브랜딩 (기본 고정) ---
+const LOGO_URL = 'logo.png'; // 리포지토리에 logo.png 업로드 필요
+const ACCENT = '#e6002d';
+(() => {
+  document.documentElement.style.setProperty('--accent', ACCENT);
+  document.documentElement.style.setProperty('--accent-2', ACCENT);
+  const logo = document.getElementById('brand-logo');
+  logo.src = LOGO_URL; logo.style.display='inline-block';
+})();
+
 // ====== 유틸 ======
 const tzNow = () => new Date(new Date().getTime() + (new Date().getTimezoneOffset() + KST_OFFSET) * 60000);
-function startOfWeekMonday(d){
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = (x.getDay()+6)%7; // Mon=0
-  x.setDate(x.getDate()-day);
-  x.setHours(0,0,0,0);
-  return x;
-}
-function fmtDate(d){
-  const y=d.getFullYear();
-  const m=String(d.getMonth()+1).padStart(2,'0');
-  const da=String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${da}`;
-}
-function addDays(d, n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function startOfWeekMonday(d){ const x=new Date(d.getFullYear(), d.getMonth(), d.getDate()); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+function fmtDate(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 
 function load(){ try{ return JSON.parse(localStorage.getItem(storeKey)) || {}; }catch(e){ return {}; } }
 function save(db){ localStorage.setItem(storeKey, JSON.stringify(db)); }
-
 function setStatus(msg, cls=''){ const el=document.getElementById('status'); el.textContent=msg; el.className=cls; }
 
 // ====== 데이터 구조 ======
@@ -142,66 +154,29 @@ function setStatus(msg, cls=''){ const el=document.getElementById('status'); el.
 
 // ====== 렌더러 ======
 function renderToday(){
-  const view=document.getElementById('view');
-  view.innerHTML='';
-  const db=load();
-  const today=tzNow();
-  const key=fmtDate(today);
-  const data=db[key];
-  const card=document.createElement('div');
-  card.className='menu-today';
-  const weekStr = ['일','월','화','수','목','금','토'][today.getDay()];
+  const view=document.getElementById('view'); view.innerHTML='';
+  const db=load(); const today=tzNow(); const key=fmtDate(today); const data=db[key];
+  const card=document.createElement('div'); card.className='menu-today';
+  const weekStr=['일','월','화','수','목','금','토'][today.getDay()];
   card.innerHTML = `<h2>오늘의 메뉴</h2><div class='date'>${key} (${weekStr})</div>`;
-  const itemsDiv=document.createElement('div');
-  itemsDiv.className='items';
-  if(data && data.items && data.items.length){
-    data.items.forEach(t=>{
-      const pill=document.createElement('div');
-      pill.className='pill';
-      pill.textContent=t.trim();
-      itemsDiv.appendChild(pill);
-    });
-    const src = data.meta?.source || '수동';
-    const srcSpan = document.createElement('div');
-    srcSpan.className='sub';
-    srcSpan.style.marginTop='8px';
-    srcSpan.textContent = `출처: ${src.toUpperCase()} · 저장일: ${new Date(data.meta?.updated||'').toLocaleString()}`;
-    itemsDiv.appendChild(srcSpan);
-  } else {
-    const emp=document.createElement('div');
-    emp.className='empty';
-    emp.textContent='오늘 데이터가 없습니다. 관리자에서 주간 메뉴를 등록하세요.';
-    itemsDiv.appendChild(emp);
-  }
-  card.appendChild(itemsDiv);
-  view.appendChild(card);
+  const itemsDiv=document.createElement('div'); itemsDiv.className='items';
+  if(data?.items?.length){
+    data.items.forEach(t=>{ const pill=document.createElement('div'); pill.className='pill'; pill.textContent=t.trim(); itemsDiv.appendChild(pill); });
+    const src=data.meta?.source||'수동'; const srcSpan=document.createElement('div'); srcSpan.className='sub'; srcSpan.style.marginTop='8px'; srcSpan.textContent=`출처: ${src.toUpperCase()} · 저장일: ${new Date(data.meta?.updated||'').toLocaleString()}`; itemsDiv.appendChild(srcSpan);
+  }else{ const emp=document.createElement('div'); emp.className='empty'; emp.textContent='오늘 데이터가 없습니다. 관리자에서 주간 메뉴를 등록하세요.'; itemsDiv.appendChild(emp); }
+  card.appendChild(itemsDiv); view.appendChild(card);
 }
 
 function renderWeek(){
-  const view=document.getElementById('view');
-  view.innerHTML='';
-  const db=load();
-  const monday=startOfWeekMonday(tzNow());
-  const wrap=document.createElement('div');
-  wrap.className='week';
+  const view=document.getElementById('view'); view.innerHTML='';
+  const db=load(); const monday=startOfWeekMonday(tzNow());
+  const wrap=document.createElement('div'); wrap.className='week';
   for(let i=0;i<5;i++){
-    const d=addDays(monday,i);
-    const key=fmtDate(d);
-    const day=document.createElement('div');
-    day.className='day';
-    const wname=weekdays[i];
-    const head=document.createElement('h3');
-    head.textContent=`${wname} (${key})`;
-    day.appendChild(head);
-    const data= db[key];
-    if(data?.items?.length){
-      const items=document.createElement('div');
-      items.className='items';
-      data.items.forEach(t=>{ const p=document.createElement('div'); p.className='pill'; p.textContent=t; items.appendChild(p); });
-      day.appendChild(items);
-    }else{
-      const emp=document.createElement('div'); emp.className='empty'; emp.textContent='등록된 메뉴 없음'; day.appendChild(emp);
-    }
+    const d=addDays(monday,i); const key=fmtDate(d); const day=document.createElement('div'); day.className='day';
+    const wname=weekdays[i]; const head=document.createElement('h3'); head.textContent=`${wname} (${key})`; day.appendChild(head);
+    const data=db[key];
+    if(data?.items?.length){ const items=document.createElement('div'); items.className='items'; data.items.forEach(t=>{ const p=document.createElement('div'); p.className='pill'; p.textContent=t; items.appendChild(p); }); day.appendChild(items); }
+    else{ const emp=document.createElement('div'); emp.className='empty'; emp.textContent='등록된 메뉴 없음'; day.appendChild(emp); }
     wrap.appendChild(day);
   }
   view.appendChild(wrap);
@@ -209,32 +184,17 @@ function renderWeek(){
 
 // ====== 파서 ======
 function parseWeeklyText(raw){
-  // 1) 전처리
-  let text = raw.replace(/\r/g,'').replace(/[\t\u00a0]+/g,' ').replace(/ +/g,' ').replace(/\s*\n\s*/g,'\n');
-  // 2) 요일 블록 추출: 요일 기호(월화수목금)로 시작하는 라인부터 다음 요일까지
-  const blocks = {};
-  const pattern = /(월|화|수|목|금)[)\]:\s\-]*([^]*?)(?=(?:\n(?:화|수|목|금)\b)|$)/gm;
-  let m; while((m=pattern.exec(text))){
-    const day=m[1];
-    const body=m[2].replace(/^[)\]:\-\s]+/,'').trim();
-    if(!body) continue;
-    // 쉼표/슬래시/점/줄바꿈으로 구분
-    const items = body.split(/[,/\n·•\-]\s*/).map(s=>s.trim()).filter(Boolean);
-    blocks[day]=items;
-  }
+  let text=raw.replace(/\r/g,'').replace(/[\t\u00a0]+/g,' ').replace(/ +/g,' ').replace(/\s*\n\s*/g,'\n');
+  const blocks={}; const pattern=/(월|화|수|목|금)[)\]:\s\-]*([^]*?)(?=(?:\n(?:화|수|목|금)\b)|$)/gm; let m;
+  while((m=pattern.exec(text))){ const day=m[1]; const body=m[2].replace(/^[)\]:\-\s]+/,'').trim(); if(!body) continue; const items=body.split(/[,\/\n·•\-]\s*/).map(s=>s.trim()).filter(Boolean); blocks[day]=items; }
   return blocks; // {월:[..],화:[..],...}
 }
 
 function upsertWeek(blocks, weekMonday, source){
   const db=load();
   for(let i=0;i<5;i++){
-    const d=addDays(weekMonday,i);
-    const key=fmtDate(d);
-    const w=weekdays[i];
-    const items = blocks[w]||[];
-    if(items.length){
-      db[key] = { items, meta:{ source, updated:new Date().toISOString() } };
-    }
+    const d=addDays(weekMonday,i); const key=fmtDate(d); const w=weekdays[i]; const items=blocks[w]||[];
+    if(items.length){ db[key]={ items, meta:{ source, updated:new Date().toISOString() } }; }
   }
   save(db);
 }
@@ -242,135 +202,50 @@ function upsertWeek(blocks, weekMonday, source){
 // ====== 관리자 ======
 let adminOn=false;
 function toggleAdmin(){
-  const ok = (document.getElementById('pin').value===PIN);
-  adminOn = ok;
-  document.getElementById('admin-area').style.display = ok? 'block':'none';
+  const ok=(document.getElementById('pin').value===PIN); adminOn=ok; document.getElementById('admin-area').style.display= ok? 'block':'none';
   setStatus(ok? '관리자 모드 활성화':'관리자 PIN이 올바르지 않습니다', ok? 'ok':'danger');
-  if(ok){
-    // 기본 주 시작일: 다음 월요일(주말에 미리 입력하는 흐름 가정)
-    const now=tzNow();
-    const mon=startOfWeekMonday(now);
-    const isWeekend = now.getDay()===0 || now.getDay()===6;
-    const nextMon = isWeekend? (now.getDay()===6? addDays(mon,2): addDays(mon,1)) : mon; // 토: +2, 일: +1
-    document.getElementById('weekStart').value = fmtDate(nextMon);
-    buildManualForm(nextMon);
-  }
+  if(ok){ const now=tzNow(); const mon=startOfWeekMonday(now); const isWeekend=now.getDay()===0||now.getDay()===6; const nextMon=isWeekend? (now.getDay()===6? addDays(mon,2): addDays(mon,1)) : mon; document.getElementById('weekStart').value=fmtDate(nextMon); buildManualForm(nextMon); }
 }
 
-function buildManualForm(weekMonday){
-  const wrap=document.getElementById('manual');
-  wrap.innerHTML='';
-  for(let i=0;i<5;i++){
-    const d=addDays(weekMonday,i);
-    const key=fmtDate(d);
-    const line=document.createElement('div');
-    line.className='row';
-    line.innerHTML=`<label style="min-width:80px;display:inline-block">${weekdays[i]}(${key})</label><input data-key="${key}" type="text" placeholder="메뉴들을 , 또는 / 로 구분하여 입력" style="flex:1"/>`;
-    wrap.appendChild(line);
-  }
-}
+function buildManualForm(weekMonday){ const wrap=document.getElementById('manual'); wrap.innerHTML=''; for(let i=0;i<5;i++){ const d=addDays(weekMonday,i); const key=fmtDate(d); const line=document.createElement('div'); line.className='row'; line.innerHTML=`<label style="min-width:80px;display:inline-block">${weekdays[i]}(${key})</label><input data-key="${key}" type="text" placeholder="메뉴들을 , 또는 / 로 구분하여 입력" style="flex:1"/>`; wrap.appendChild(line);} }
 
-function applyManual(weekMonday){
-  const inputs=[...document.querySelectorAll('#manual input[data-key]')];
-  const blocks={};
-  inputs.forEach(el=>{
-    const key=el.getAttribute('data-key');
-    const d=new Date(key);
-    const idx=(d.getDay()+6)%7; // Mon=0
-    if(idx<5){
-      const w=weekdays[idx];
-      const items = el.value.split(/[\/,]/).map(s=>s.trim()).filter(Boolean);
-      if(items.length) blocks[w]=items;
-    }
-  });
-  upsertWeek(blocks, weekMonday, 'manual');
-}
+function applyManual(weekMonday){ const inputs=[...document.querySelectorAll('#manual input[data-key]')]; const blocks={}; inputs.forEach(el=>{ const key=el.getAttribute('data-key'); const d=new Date(key); const idx=(d.getDay()+6)%7; if(idx<5){ const w=weekdays[idx]; const items=el.value.split(/[\/,]/).map(s=>s.trim()).filter(Boolean); if(items.length) blocks[w]=items; }}); upsertWeek(blocks, weekMonday, 'manual'); }
 
-// ====== 이벤트 바인딩 ======
-
-document.getElementById('btn-today').addEventListener('click', ()=>{ renderToday(); });
-document.getElementById('btn-week').addEventListener('click', ()=>{ renderWeek(); });
+// ====== 이벤트 ======
+document.getElementById('btn-today').addEventListener('click', ()=>{ renderToday(); document.getElementById('btn-today').classList.add('active'); document.getElementById('btn-week').classList.remove('active'); });
+document.getElementById('btn-week').addEventListener('click', ()=>{ renderWeek(); document.getElementById('btn-week').classList.add('active'); document.getElementById('btn-today').classList.remove('active'); });
 document.getElementById('btn-auth').addEventListener('click', toggleAdmin);
 
 document.getElementById('btn-apply-text').addEventListener('click', ()=>{
   if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
-  const raw=document.getElementById('txt').value||'';
-  const weekStart=document.getElementById('weekStart').value;
-  if(!weekStart) return setStatus('적용 주 시작일(월요일)을 선택하세요.','warn');
-  const blocks=parseWeeklyText(raw);
-  if(Object.keys(blocks).length===0){ setStatus('요일을 찾지 못했습니다. 예: "월) 메뉴" 형식 확인','warn'); return; }
-  upsertWeek(blocks, new Date(weekStart), 'text');
-  setStatus('주간메뉴가 저장되었습니다.','ok');
-  renderWeek();
+  const raw=document.getElementById('txt').value||''; const weekStart=document.getElementById('weekStart').value; if(!weekStart) return setStatus('적용 주 시작일(월요일)을 선택하세요.','warn');
+  const blocks=parseWeeklyText(raw); if(Object.keys(blocks).length===0){ setStatus('요일을 찾지 못했습니다. 예: "월) 메뉴" 형식 확인','warn'); return; }
+  upsertWeek(blocks, new Date(weekStart), 'text'); setStatus('주간메뉴가 저장되었습니다.','ok'); renderWeek();
 });
 
 // OCR
 async function runOCR(){
   if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
-  const f=document.getElementById('img').files?.[0];
-  if(!f){ setStatus('이미지를 선택하세요.','warn'); return; }
+  const f=document.getElementById('img').files?.[0]; if(!f){ setStatus('이미지를 선택하세요.','warn'); return; }
   setStatus('OCR 처리 중... (이미지 품질에 따라 수초 소요)','warn');
-  const worker = await Tesseract.createWorker('kor');
-  const { data:{ text } } = await worker.recognize(f);
-  await worker.terminate();
-  document.getElementById('ocr-out').style.display='block';
-  document.getElementById('ocr-out').textContent = text.trim();
-  const blocks=parseWeeklyText(text);
-  if(Object.keys(blocks).length){
-    const weekStart=document.getElementById('weekStart').value;
-    if(!weekStart){ setStatus('적용 주 시작일(월요일)을 먼저 선택하세요.','warn'); return; }
-    upsertWeek(blocks, new Date(weekStart), 'ocr');
-    setStatus('OCR 결과를 바탕으로 주간메뉴 저장 완료(필요시 텍스트로 수정).','ok');
-    renderWeek();
-  } else {
-    setStatus('OCR 텍스트에서 요일 블록을 찾지 못했습니다. 텍스트 영역에 복사해 수동 보정 후 저장하세요.','danger');
-  }
+  const worker=await Tesseract.createWorker('kor'); const { data:{ text } }=await worker.recognize(f); await worker.terminate();
+  document.getElementById('ocr-out').style.display='block'; document.getElementById('ocr-out').textContent=text.trim();
+  const blocks=parseWeeklyText(text); if(Object.keys(blocks).length){ const weekStart=document.getElementById('weekStart').value; if(!weekStart){ setStatus('적용 주 시작일(월요일)을 먼저 선택하세요.','warn'); return; } upsertWeek(blocks, new Date(weekStart), 'ocr'); setStatus('OCR 결과를 바탕으로 주간메뉴 저장 완료(필요시 텍스트로 수정).','ok'); renderWeek(); } else { setStatus('OCR 텍스트에서 요일 블록을 찾지 못했습니다. 텍스트 영역에 복사해 수동 보정 후 저장하세요.','danger'); }
 }
-
 document.getElementById('btn-ocr').addEventListener('click', runOCR);
 
-// 수동 입력 초기화 및 저장
-function refreshManual(){
-  const v=document.getElementById('weekStart').value; if(!v) return;
-  buildManualForm(new Date(v));
-}
-
+function refreshManual(){ const v=document.getElementById('weekStart').value; if(!v) return; buildManualForm(new Date(v)); }
 document.getElementById('weekStart').addEventListener('change', refreshManual);
 
-document.getElementById('btn-clear-week').addEventListener('click', ()=>{
-  if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
-  const v=document.getElementById('weekStart').value; if(!v) return;
-  const db=load();
-  const mon=new Date(v);
-  for(let i=0;i<5;i++){
-    const key=fmtDate(addDays(mon,i));
-    delete db[key];
-  }
-  save(db);
-  setStatus('이번 주 데이터가 초기화되었습니다.','ok');
-  renderWeek();
-});
+document.getElementById('btn-clear-week').addEventListener('click', ()=>{ if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn'); const v=document.getElementById('weekStart').value; if(!v) return; const db=load(); const mon=new Date(v); for(let i=0;i<5;i++){ const key=fmtDate(addDays(mon,i)); delete db[key]; } save(db); setStatus('이번 주 데이터가 초기화되었습니다.','ok'); renderWeek(); });
 
 // 백업/복원
 
-document.getElementById('btn-export').addEventListener('click', ()=>{
-  const db=load();
-  const blob = new Blob([JSON.stringify(db,null,2)], {type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='cafeteria-backup.json';
-  a.click();
-});
+document.getElementById('btn-export').addEventListener('click', ()=>{ const db=load(); const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cafeteria-backup.json'; a.click(); });
 
-document.getElementById('btn-import').addEventListener('click', ()=>{
-  const f=document.getElementById('importFile').files?.[0];
-  if(!f) return setStatus('가져올 JSON 파일을 선택하세요.','warn');
-  const r=new FileReader();
-  r.onload=()=>{ try{ const obj=JSON.parse(r.result); save(obj); setStatus('백업 복원 완료','ok'); renderWeek(); }catch(e){ setStatus('JSON 파싱 오류','danger'); } };
-  r.readAsText(f);
-});
+document.getElementById('btn-import').addEventListener('click', ()=>{ const f=document.getElementById('importFile').files?.[0]; if(!f) return setStatus('가져올 JSON 파일을 선택하세요.','warn'); const r=new FileReader(); r.onload=()=>{ try{ const obj=JSON.parse(r.result); save(obj); setStatus('백업 복원 완료','ok'); renderWeek(); }catch(e){ setStatus('JSON 파싱 오류','danger'); } }; r.readAsText(f); });
 
-// 초기 렌더: 오늘
+// 초기 렌더
 renderToday();
 </script>
 </body>
