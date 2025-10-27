@@ -119,14 +119,15 @@
   </div>
 
 <script>
-const PIN = '2580'; // ✅ 이 값은 로컬에만 저장되며, 다른 사용자는 변경하거나 확인할 수 없습니다.
-// 원격 JSON 불러오기(공유용): URL 파라미터 dataUrl 로 지정
+const PIN = '2580';
 const dataUrl = new URLSearchParams(location.search).get('dataUrl');
+
 async function pullRemote(url){
   try{
     setStatus('클라우드에서 메뉴 불러오는 중...','warn');
     const res = await fetch(url, {cache:'no-store'});
-    const obj = await res.json();
+    const text = await res.text();
+    const obj = JSON.parse(text);
     save(obj);
     setStatus('클라우드 메뉴가 적용되었습니다.','ok');
   }catch(e){
@@ -134,6 +135,7 @@ async function pullRemote(url){
     setStatus('클라우드 메뉴 불러오기에 실패했습니다. 로컬 데이터를 사용합니다.','danger');
   }
 }
+
 const KST_OFFSET = 9 * 60;
 const storeKey = 'cafeteria.menus.v1';
 const weekdays = ['월','화','수','목','금'];
@@ -152,11 +154,18 @@ function renderWeek(){const view=document.getElementById('view');view.innerHTML=
 
 document.getElementById('btn-today').addEventListener('click',()=>{renderToday();document.getElementById('btn-today').classList.add('active');document.getElementById('btn-week').classList.remove('active')})
 document.getElementById('btn-week').addEventListener('click',()=>{renderWeek();document.getElementById('btn-week').classList.add('active');document.getElementById('btn-today').classList.remove('active')})
-(async()=>{ if(dataUrl){ await pullRemote(dataUrl); } renderToday(); })();
-  // 관리자 기능 숨기기 (공유용 보기 전용 모드)
-if(!localStorage.getItem('adminAccess')){
-  document.querySelector('.admin').style.display='none';
-}
+
+(async()=>{
+  if(dataUrl){ await pullRemote(dataUrl); }
+  renderToday();
+  // 보기 전용: 기본으로 관리자 섹션 숨김 (admin=1일 때만 보이기)
+  const qp = new URLSearchParams(location.search);
+  const isAdminParam = qp.get('admin') === '1';
+  if(!isAdminParam && !localStorage.getItem('adminAccess')){
+    const adminEl = document.querySelector('.admin');
+    if(adminEl) adminEl.style.display='none';
+  }
+})();
 </script>
 </body>
 </html>
