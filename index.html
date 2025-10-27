@@ -153,6 +153,10 @@ function renderWeek(){const view=document.getElementById('view');view.innerHTML=
 document.getElementById('btn-today').addEventListener('click',()=>{renderToday();document.getElementById('btn-today').classList.add('active');document.getElementById('btn-week').classList.remove('active')})
 document.getElementById('btn-week').addEventListener('click',()=>{renderWeek();document.getElementById('btn-week').classList.add('active');document.getElementById('btn-today').classList.remove('active')})
 (async()=>{ if(dataUrl){ await pullRemote(dataUrl); } renderToday(); })();
+  // 관리자 기능 숨기기 (공유용 보기 전용 모드)
+if(!localStorage.getItem('adminAccess')){
+  document.querySelector('.admin').style.display='none';
+}
 </script>
 </body>
 </html>
