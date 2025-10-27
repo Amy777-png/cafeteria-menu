@@ -148,22 +148,104 @@ function load(){try{return JSON.parse(localStorage.getItem(storeKey))||{}}catch(
 function save(db){localStorage.setItem(storeKey,JSON.stringify(db))}
 function setStatus(msg,cls=''){const el=document.getElementById('status');el.textContent=msg;el.className=cls}
 
-function renderToday(){const view=document.getElementById('view');view.innerHTML='';const db=load();const today=tzNow();const key=fmtDate(today);const data=db[key];const card=document.createElement('div');card.className='menu-today';const weekStr=['일','월','화','수','목','금','토'][today.getDay()];card.innerHTML=`<h2>오늘의 메뉴</h2><div class='date'>${key} (${weekStr})</div>`;const itemsDiv=document.createElement('div');itemsDiv.className='items';if(data?.items?.length){data.items.forEach(t=>{const pill=document.createElement('div');pill.className='pill';pill.textContent=t.trim();itemsDiv.appendChild(pill)});const src=data.meta?.source||'수동';const srcSpan=document.createElement('div');srcSpan.className='sub';srcSpan.style.marginTop='8px';srcSpan.textContent=`출처: ${src.toUpperCase()} · 저장일: ${new Date(data.meta?.updated||'').toLocaleString()}`;itemsDiv.appendChild(srcSpan)}else{const emp=document.createElement('div');emp.className='empty';emp.textContent='오늘 데이터가 없습니다.';itemsDiv.appendChild(emp)}card.appendChild(itemsDiv);view.appendChild(card)}
+function renderToday(){
+  const view=document.getElementById('view');
+  view.innerHTML='';
+  const db=load();
+  const today=tzNow();
+  const key=fmtDate(today);
+  const data=db[key];
+  const card=document.createElement('div');
+  card.className='menu-today';
+  const weekStr=['일','월','화','수','목','금','토'][today.getDay()];
+  card.innerHTML=`<h2>오늘의 메뉴</h2><div class='date'>${key} (${weekStr})</div>`;
+  const itemsDiv=document.createElement('div');
+  itemsDiv.className='items';
+  if(data?.items?.length){
+    data.items.forEach(t=>{
+      const pill=document.createElement('div');
+      pill.className='pill';
+      pill.textContent=t.trim();
+      itemsDiv.appendChild(pill);
+    });
+    const src=data.meta?.source||'수동';
+    const srcSpan=document.createElement('div');
+    srcSpan.className='sub';
+    srcSpan.style.marginTop='8px';
+    srcSpan.textContent=`출처: ${src.toUpperCase()} · 저장일: ${new Date(data.meta?.updated||'').toLocaleString()}`;
+    itemsDiv.appendChild(srcSpan);
+  }else{
+    const emp=document.createElement('div');
+    emp.className='empty';
+    emp.textContent='오늘 데이터가 없습니다.';
+    itemsDiv.appendChild(emp);
+  }
+  card.appendChild(itemsDiv);
+  view.appendChild(card);
+}
 
-function renderWeek(){const view=document.getElementById('view');view.innerHTML='';const db=load();const monday=startOfWeekMonday(tzNow());const wrap=document.createElement('div');wrap.className='week';for(let i=0;i<5;i++){const d=addDays(monday,i);const key=fmtDate(d);const day=document.createElement('div');day.className='day';const wname=weekdays[i];const head=document.createElement('h3');head.textContent=`${wname} (${key})`;day.appendChild(head);const data=db[key];if(data?.items?.length){const items=document.createElement('div');items.className='items';data.items.forEach(t=>{const p=document.createElement('div');p.className='pill';p.textContent=t;items.appendChild(p)});day.appendChild(items)}else{const emp=document.createElement('div');emp.className='empty';emp.textContent='등록된 메뉴 없음';day.appendChild(emp)}wrap.appendChild(day)}view.appendChild(wrap)}
+function renderWeek(){
+  const view=document.getElementById('view');
+  view.innerHTML='';
+  const db=load();
+  const monday=startOfWeekMonday(tzNow());
+  const wrap=document.createElement('div');
+  wrap.className='week';
+  for(let i=0;i<5;i++){
+    const d=addDays(monday,i);
+    const key=fmtDate(d);
+    const day=document.createElement('div');
+    day.className='day';
+    const wname=weekdays[i];
+    const head=document.createElement('h3');
+    head.textContent=`${wname} (${key})`;
+    day.appendChild(head);
+    const data=db[key];
+    if(data?.items?.length){
+      const items=document.createElement('div');
+      items.className='items';
+      data.items.forEach(t=>{
+        const p=document.createElement('div');
+        p.className='pill';
+        p.textContent=t;
+        items.appendChild(p);
+      });
+      day.appendChild(items);
+    }else{
+      const emp=document.createElement('div');
+      emp.className='empty';
+      emp.textContent='등록된 메뉴 없음';
+      day.appendChild(emp);
+    }
+    wrap.appendChild(day);
+  }
+  view.appendChild(wrap);
+}
 
-document.getElementById('btn-today').addEventListener('click',()=>{renderToday();document.getElementById('btn-today').classList.add('active');document.getElementById('btn-week').classList.remove('active')})
-document.getElementById('btn-week').addEventListener('click',()=>{renderWeek();document.getElementById('btn-week').classList.add('active');document.getElementById('btn-today').classList.remove('active')})
+document.getElementById('btn-today').addEventListener('click',()=>{
+  renderToday();
+  document.getElementById('btn-today').classList.add('active');
+  document.getElementById('btn-week').classList.remove('active');
+});
+document.getElementById('btn-week').addEventListener('click',()=>{
+  renderWeek();
+  document.getElementById('btn-week').classList.add('active');
+  document.getElementById('btn-today').classList.remove('active');
+});
 
 (async()=>{
-  if(dataUrl){ await pullRemote(dataUrl); }
-  renderToday();
-  // 보기 전용: 기본으로 관리자 섹션 숨김 (admin=1일 때만 보이기)
   const qp = new URLSearchParams(location.search);
   const isAdminParam = qp.get('admin') === '1';
-  if(!isAdminParam && !localStorage.getItem('adminAccess')){
+
+  if(dataUrl){
+    await pullRemote(dataUrl);
+  }
+  renderToday(); // ✅ 첫 화면은 “오늘 메뉴” 자동 표시
+
+  // ✅ 관리자 숨김 (팀원용 완전 차단)
+  if(!isAdminParam){
     const adminEl = document.querySelector('.admin');
-    if(adminEl) adminEl.style.display='none';
+    if(adminEl) adminEl.remove();
   }
 })();
 </script>
