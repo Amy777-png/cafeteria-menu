@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>정반식당 오늘의 메뉴</title>
   <style>
+    /* ✅ 팀원 링크에서는 관리자 영역 무조건 숨김 */
+    #admin-block { display: none !important; }
+
     :root{--bg:#0b0f14;--card:#131922;--muted:#93a2b1;--accent:#4fc3f7;--ok:#8bc34a;--warn:#ffc107;--danger:#ff6b6b}
     html,body{margin:0;padding:0;background:var(--bg);color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif}
     .wrap{max-width:720px;margin:32px auto;padding:0 16px}
@@ -26,17 +29,6 @@
     .day{margin-top:10px}
     .day h3{margin:0 0 6px;font-size:15px;color:#bfe2ff}
     .empty{color:#97a6b5}
-    /* ✅ 관리자 블록은 기본적으로 안 보이게 */
-    .admin{margin-top:20px;display:none}
-    details{border:1px solid #2b3b50;border-radius:12px}
-    details[open]{background:#0f141b}
-    summary{cursor:pointer;padding:12px 14px;font-weight:600}
-    .panel{padding:14px}
-    .hint{font-size:12px;color:#aab6c2}
-    .ok{color:var(--ok)}
-    .warn{color:var(--warn)}
-    .danger{color:var(--danger)}
-    .code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#0b0f14;border:1px solid #223041;border-radius:8px;padding:8px;white-space:pre-wrap}
     .footer{margin-top:16px;color:#7f8b98;font-size:12px}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -58,7 +50,7 @@
 
       <div class="grid" id="view"></div>
 
-      <!-- ✅ 관리자 영역: 기본 display:none -->
+      <!-- ✅ 기본은 숨겨져 있고, admin=1 이거나 이미 인증된 경우에만 JS가 다시 보여줄 거야 -->
       <div class="admin" id="admin-block">
         <details>
           <summary>관리자 입력 / OCR (주말에 주간메뉴 등록)</summary>
@@ -75,7 +67,7 @@
               </div>
 
               <h3>1) 텍스트로 붙여넣기</h3>
-              <textarea id="txt" rows="8" placeholder="월) ..., 화) ... 이런 식으로 붙여넣기" style="width:100%"></textarea>
+              <textarea id="txt" rows="8" style="width:100%"></textarea>
               <div class="row">
                 <button id="btn-apply-text" class="primary">주간메뉴 저장</button>
               </div>
@@ -271,10 +263,9 @@ document.getElementById('btn-import').addEventListener('click',()=>{
 
 (async ()=>{
   const qp=new URLSearchParams(location.search);
-  const isAdminParam=qp.get('admin')==='1';
-  const hasAdminHash=location.hash.includes('admin');
+  const isAdminParam=qp.get('admin')==='1' || location.hash.includes('admin');
 
-  // 1) 데이터Url 있으면 먼저 끌어온다
+  // 1) gist에서 데이터 가져오기
   if(dataUrl){
     try{
       const res=await fetch(dataUrl,{cache:'no-store'});
@@ -290,14 +281,9 @@ document.getElementById('btn-import').addEventListener('click',()=>{
   // 2) 기본 화면
   renderToday();
 
-  // 3) ✅ 관리자 보이기 조건
-  const adminEl=document.getElementById('admin-block');
-  if(adminEl){
-    if(isAdminParam || hasAdminHash || localStorage.getItem('adminAccess')==='1'){
-      adminEl.style.display='block';
-    }else{
-      adminEl.style.display='none';
-    }
+  // 3) ✅ 진짜 관리자만 보이게
+  if(isAdminParam || localStorage.getItem('adminAccess')==='1'){
+    document.getElementById('admin-block').style.display='block';
   }
 })();
 </script>
