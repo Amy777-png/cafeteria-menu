@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>정반식당 오늘의 메뉴</title>
   <style>
-    /* ✅ 팀원 링크에서는 관리자 영역 무조건 숨김 */
-    #admin-block { display: none !important; }
-
     :root{--bg:#0b0f14;--card:#131922;--muted:#93a2b1;--accent:#4fc3f7;--ok:#8bc34a;--warn:#ffc107;--danger:#ff6b6b}
     html,body{margin:0;padding:0;background:var(--bg);color:#e8eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Apple SD Gothic Neo,Noto Sans KR,Arial,sans-serif}
     .wrap{max-width:720px;margin:32px auto;padding:0 16px}
@@ -29,8 +26,19 @@
     .day{margin-top:10px}
     .day h3{margin:0 0 6px;font-size:15px;color:#bfe2ff}
     .empty{color:#97a6b5}
+    .admin{margin-top:20px}
+    details{border:1px solid #2b3b50;border-radius:12px}
+    details[open]{background:#0f141b}
+    summary{cursor:pointer;padding:12px 14px;font-weight:600}
+    .panel{padding:14px}
+    .hint{font-size:12px;color:#aab6c2}
+    .ok{color:var(--ok)}
+    .warn{color:var(--warn)}
+    .danger{color:var(--danger)}
+    .code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#0b0f14;border:1px solid #223041;border-radius:8px;padding:8px;white-space:pre-wrap}
     .footer{margin-top:16px;color:#7f8b98;font-size:12px}
   </style>
+  <!-- OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -50,14 +58,15 @@
 
       <div class="grid" id="view"></div>
 
-      <!-- ✅ 기본은 숨겨져 있고, admin=1 이거나 이미 인증된 경우에만 JS가 다시 보여줄 거야 -->
+      <!-- 관리자 박스 -->
       <div class="admin" id="admin-block">
-        <details>
+        <details open>
           <summary>관리자 입력 / OCR (주말에 주간메뉴 등록)</summary>
           <div class="panel">
             <div class="row">
-              <input id="pin" type="password" placeholder="관리자 PIN (기본 2580)" style="max-width:200px"/>
-              <button id="btn-auth">관리자 모드 전환</button>
+              <input id="pin" type="password" value="2580" placeholder="관리자 PIN (기본 2580)" style="max-width:200px"/>
+              <button id="btn-auth" onclick="toggleAdmin()">관리자 모드 전환</button>
+              <span class="hint">공유용 배포 시 코드에서 PIN을 꼭 바꿔주세요.</span>
             </div>
 
             <div id="admin-area" style="display:none">
@@ -67,15 +76,17 @@
               </div>
 
               <h3>1) 텍스트로 붙여넣기</h3>
-              <textarea id="txt" rows="8" style="width:100%"></textarea>
+              <textarea id="txt" rows="8" placeholder="월) ...&#10;화) ...&#10;수) ...&#10;목) ...&#10;금) ..." style="width:100%"></textarea>
               <div class="row">
                 <button id="btn-apply-text" class="primary">주간메뉴 저장</button>
+                <span class="hint">형식에 엄격하지 않아도 됩니다. 요일(월~금)만 명확하면 자동 인식합니다.</span>
               </div>
 
               <h3>2) 이미지 업로드 후 OCR</h3>
               <input id="img" type="file" accept="image/*"/>
               <div class="row">
                 <button id="btn-ocr" class="primary">이미지에서 텍스트 추출(OCR)</button>
+                <span class="hint">네이버 지도 주간메뉴 이미지를 저장 후 업로드하세요. 정확도가 낮으면 텍스트로 수정하세요.</span>
               </div>
               <div id="ocr-out" class="code" style="display:none"></div>
 
@@ -93,58 +104,97 @@
       </div>
 
       <div class="footer">
-        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다.
+        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다. 공유하려면 Gist RAW JSON을 연결하세요.
       </div>
     </div>
   </div>
 
 <script>
+/* ===== 설정 ===== */
 const PIN = '2580';
-const KST_OFFSET = 9 * 60;
 const storeKey = 'cafeteria.menus.v1';
 const weekdays = ['월','화','수','목','금'];
-const dataUrl = new URLSearchParams(location.search).get('dataUrl');
+const qp = new URLSearchParams(location.search);
+const dataUrl = qp.get('dataUrl');
+const isAdminLink = qp.get('admin') === '1';
 
-const tzNow = () => new Date(new Date().getTime() + (new Date().getTimezoneOffset() + KST_OFFSET) * 60000);
-function startOfWeekMonday(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(0,0,0,0);return x;}
-function fmtDate(d){return d.toISOString().split('T')[0];}
-function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
-function load(){try{return JSON.parse(localStorage.getItem(storeKey))||{}}catch(e){return {};}}
-function save(db){localStorage.setItem(storeKey,JSON.stringify(db));}
-function setStatus(msg,cls=''){const el=document.getElementById('status');el.textContent=msg;el.className=cls;}
+/* ✅ 서울시간 만드는 함수 (요일 꼬임 방지) */
+function kstNow() {
+  // 브라우저에게 "서울 시간으로 찍어줘" 하고 문자열을 받은 다음, 그걸 다시 Date로 만듦
+  const s = new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' });
+  return new Date(s);
+}
 
+function startOfWeekMonday(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (x.getDay() + 6) % 7; // Mon=0
+  x.setDate(x.getDate() - day);
+  x.setHours(0,0,0,0);
+  return x;
+}
+function fmtDate(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const da=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+
+function load(){ try{ return JSON.parse(localStorage.getItem(storeKey)) || {}; }catch(e){ return {}; } }
+function save(db){ localStorage.setItem(storeKey, JSON.stringify(db)); }
+function setStatus(msg, cls=''){ const el=document.getElementById('status'); el.textContent=msg; el.className=cls; }
+
+/* ===== 렌더 ===== */
 function renderToday(){
-  const view=document.getElementById('view');view.innerHTML='';
-  const db=load();const today=tzNow();const key=fmtDate(today);const data=db[key];
-  const card=document.createElement('div');card.className='menu-today';
-  const weekStr=['일','월','화','수','목','금','토'][today.getDay()];
-  card.innerHTML=`<h2>오늘의 메뉴</h2><div class='date'>${key} (${weekStr})</div>`;
-  const itemsDiv=document.createElement('div');itemsDiv.className='items';
+  const view=document.getElementById('view'); view.innerHTML='';
+  const db=load();
+  const today=kstNow();               // ← 여기서부터가 KST
+  const key=fmtDate(today);
+  const data=db[key];
+
+  // KST기준 요일
+  const kstDow = today.toLocaleString('ko-KR', { weekday: 'short', timeZone: 'Asia/Seoul' }); // 예: 월, 화 ...
+
+  const card=document.createElement('div');
+  card.className='menu-today';
+  card.innerHTML = `<h2>오늘의 메뉴</h2><div class='date'>${key} (${kstDow})</div>`;
+
+  const itemsDiv=document.createElement('div'); itemsDiv.className='items';
   if(data?.items?.length){
-    data.items.forEach(t=>{const pill=document.createElement('div');pill.className='pill';pill.textContent=t.trim();itemsDiv.appendChild(pill);});
+    data.items.forEach(t=>{
+      const pill=document.createElement('div'); pill.className='pill'; pill.textContent=t.trim();
+      itemsDiv.appendChild(pill);
+    });
   }else{
-    const emp=document.createElement('div');emp.className='empty';emp.textContent='오늘 데이터가 없습니다.';itemsDiv.appendChild(emp);
+    const emp=document.createElement('div'); emp.className='empty'; emp.textContent='오늘 데이터가 없습니다.';
+    itemsDiv.appendChild(emp);
   }
-  card.appendChild(itemsDiv);view.appendChild(card);
+  card.appendChild(itemsDiv);
+  view.appendChild(card);
 }
 
 function renderWeek(){
-  const view=document.getElementById('view');view.innerHTML='';
-  const db=load();const monday=startOfWeekMonday(tzNow());
-  const wrap=document.createElement('div');wrap.className='week';
+  const view=document.getElementById('view'); view.innerHTML='';
+  const db=load();
+  const monday=startOfWeekMonday(kstNow());
+  const wrap=document.createElement('div'); wrap.className='week';
   for(let i=0;i<5;i++){
-    const d=addDays(monday,i);const key=fmtDate(d);
-    const day=document.createElement('div');day.className='day';
-    const wname=weekdays[i];
-    const head=document.createElement('h3');head.textContent=`${wname} (${key})`;
+    const d=addDays(monday,i);
+    const key=fmtDate(d);
+    const day=document.createElement('div'); day.className='day';
+    const head=document.createElement('h3');
+    head.textContent = `${weekdays[i]} (${key})`;
     day.appendChild(head);
     const data=db[key];
     if(data?.items?.length){
-      const items=document.createElement('div');items.className='items';
-      data.items.forEach(t=>{const p=document.createElement('div');p.className='pill';p.textContent=t;items.appendChild(p);});
+      const items=document.createElement('div'); items.className='items';
+      data.items.forEach(t=>{
+        const p=document.createElement('div'); p.className='pill'; p.textContent=t;
+        items.appendChild(p);
+      });
       day.appendChild(items);
     }else{
-      const emp=document.createElement('div');emp.className='empty';emp.textContent='등록된 메뉴 없음';
+      const emp=document.createElement('div'); emp.className='empty'; emp.textContent='등록된 메뉴 없음';
       day.appendChild(emp);
     }
     wrap.appendChild(day);
@@ -152,20 +202,23 @@ function renderWeek(){
   view.appendChild(wrap);
 }
 
+/* ===== 파싱 & 저장 ===== */
 function parseWeeklyText(raw){
+  let text=raw.replace(/\r/g,'').replace(/[\t\u00a0]+/g,' ').replace(/ +/g,' ').replace(/\s*\n\s*/g,'\n');
   const blocks={};
   const pattern=/(월|화|수|목|금)[)\]:\s\-]*([^]*?)(?=(?:\n(?:화|수|목|금)\b)|$)/gm;
   let m;
-  while((m=pattern.exec(raw))){
+  while((m=pattern.exec(text))){
     const day=m[1];
-    const body=m[2].trim();
+    const body=m[2].replace(/^[)\]:\-\s]+/,'').trim();
     if(!body) continue;
     const items=body.split(/[,/\n·•\-]\s*/).map(s=>s.trim()).filter(Boolean);
     blocks[day]=items;
   }
   return blocks;
 }
-function upsertWeek(blocks,weekMonday,source){
+
+function upsertWeek(blocks, weekMonday, source){
   const db=load();
   for(let i=0;i<5;i++){
     const d=addDays(weekMonday,i);
@@ -179,20 +232,34 @@ function upsertWeek(blocks,weekMonday,source){
   save(db);
 }
 
-let adminOn=false;
+/* ===== 관리자 ===== */
+let adminOn = false;
 function toggleAdmin(){
-  const pinVal=document.getElementById('pin').value;
-  const adminArea=document.getElementById('admin-area');
-  if(pinVal===PIN){
-    adminOn=true;
+  const pinVal = document.getElementById('pin').value;
+  const adminArea = document.getElementById('admin-area');
+  if(pinVal === PIN){
+    adminOn = true;
     adminArea.style.display='block';
     setStatus('관리자 모드 활성화','ok');
-    localStorage.setItem('adminAccess','1');
+    const now = kstNow();
+    const mon = startOfWeekMonday(now);
+    document.getElementById('weekStart').value = fmtDate(mon);
+    buildManualForm(mon);
   }else{
-    adminOn=false;
+    adminOn = false;
     adminArea.style.display='none';
-    setStatus('PIN이 올바르지 않습니다.','danger');
-    localStorage.removeItem('adminAccess');
+    setStatus('관리자 PIN이 올바르지 않습니다','danger');
+  }
+}
+
+function buildManualForm(weekMonday){
+  const wrap=document.getElementById('manual'); wrap.innerHTML='';
+  for(let i=0;i<5;i++){
+    const d=addDays(weekMonday,i); const key=fmtDate(d);
+    const line=document.createElement('div'); line.className='row';
+    line.innerHTML = `<label style="min-width:80px;display:inline-block">${weekdays[i]}(${key})</label>
+      <input data-key="${key}" type="text" placeholder="메뉴들을 , 또는 / 로 구분하여 입력" style="flex:1"/>`;
+    wrap.appendChild(line);
   }
 }
 
@@ -201,40 +268,40 @@ async function runOCR(){
   const f=document.getElementById('img').files?.[0];
   if(!f) return setStatus('이미지를 선택하세요.','warn');
   setStatus('OCR 처리 중...','warn');
-  const worker=await Tesseract.createWorker('kor');
-  const {data:{text}}=await worker.recognize(f);
+  const worker = await Tesseract.createWorker('kor');
+  const { data:{ text } } = await worker.recognize(f);
   await worker.terminate();
   document.getElementById('ocr-out').style.display='block';
   document.getElementById('ocr-out').textContent=text.trim();
   const blocks=parseWeeklyText(text);
   const weekStart=document.getElementById('weekStart').value;
   if(weekStart && Object.keys(blocks).length){
-    upsertWeek(blocks,new Date(weekStart),'ocr');
+    upsertWeek(blocks, new Date(weekStart), 'ocr');
     setStatus('OCR 결과 저장 완료','ok');
     renderWeek();
   }else{
-    setStatus('OCR 텍스트에서 요일을 찾지 못했습니다.','danger');
+    setStatus('OCR 결과에서 요일을 찾지 못했습니다.','danger');
   }
 }
 
-document.getElementById('btn-today').addEventListener('click',()=>renderToday());
-document.getElementById('btn-week').addEventListener('click',()=>renderWeek());
-document.getElementById('btn-auth').addEventListener('click',toggleAdmin);
-document.getElementById('btn-apply-text').addEventListener('click',()=>{
+/* ===== 이벤트 ===== */
+document.getElementById('btn-today').addEventListener('click', ()=>renderToday());
+document.getElementById('btn-week').addEventListener('click', ()=>renderWeek());
+document.getElementById('btn-apply-text').addEventListener('click', ()=>{
   if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
   const raw=document.getElementById('txt').value||'';
   const weekStart=document.getElementById('weekStart').value;
-  if(!weekStart) return;
+  if(!weekStart) return setStatus('적용 주 시작일(월요일)을 선택하세요.','warn');
   const blocks=parseWeeklyText(raw);
-  upsertWeek(blocks,new Date(weekStart),'text');
+  if(Object.keys(blocks).length===0) return setStatus('요일을 찾지 못했습니다. 형식을 확인하세요.','warn');
+  upsertWeek(blocks, new Date(weekStart), 'text');
   setStatus('주간메뉴 저장 완료','ok');
   renderWeek();
 });
-document.getElementById('btn-ocr').addEventListener('click',runOCR);
-document.getElementById('btn-clear-week').addEventListener('click',()=>{
+document.getElementById('btn-ocr').addEventListener('click', runOCR);
+document.getElementById('btn-clear-week').addEventListener('click', ()=>{
   if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
-  const v=document.getElementById('weekStart').value;
-  if(!v) return;
+  const v=document.getElementById('weekStart').value; if(!v) return;
   const db=load();
   const mon=new Date(v);
   for(let i=0;i<5;i++){
@@ -245,31 +312,29 @@ document.getElementById('btn-clear-week').addEventListener('click',()=>{
   setStatus('이번 주 데이터 삭제 완료','ok');
   renderWeek();
 });
-document.getElementById('btn-export').addEventListener('click',()=>{
+document.getElementById('btn-export').addEventListener('click', ()=>{
   const db=load();
   const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='cafeteria-backup.json';
+  a.download='cafeteria.json';
   a.click();
 });
-document.getElementById('btn-import').addEventListener('click',()=>{
+document.getElementById('btn-import').addEventListener('click', ()=>{
   const f=document.getElementById('importFile').files?.[0];
   if(!f) return setStatus('가져올 JSON 파일을 선택하세요.','warn');
   const r=new FileReader();
-  r.onload=()=>{try{const obj=JSON.parse(r.result);save(obj);setStatus('백업 복원 완료','ok');renderWeek();}catch(e){setStatus('JSON 파싱 오류','danger');}};
+  r.onload=()=>{ try{ const obj=JSON.parse(r.result); save(obj); setStatus('백업 복원 완료','ok'); renderWeek(); }catch(e){ setStatus('JSON 파싱 오류','danger'); } };
   r.readAsText(f);
 });
 
+/* ===== 초기화 ===== */
 (async ()=>{
-  const qp=new URLSearchParams(location.search);
-  const isAdminParam=qp.get('admin')==='1' || location.hash.includes('admin');
-
-  // 1) gist에서 데이터 가져오기
+  // 공유 JSON 먼저 반영
   if(dataUrl){
     try{
-      const res=await fetch(dataUrl,{cache:'no-store'});
-      const obj=await res.json();
+      const res = await fetch(dataUrl, {cache:'no-store'});
+      const obj = await res.json();
       save(obj);
       setStatus('공유 데이터 적용됨','ok');
     }catch(e){
@@ -278,12 +343,15 @@ document.getElementById('btn-import').addEventListener('click',()=>{
     }
   }
 
-  // 2) 기본 화면
+  // 기본 화면: 오늘
   renderToday();
 
-  // 3) ✅ 진짜 관리자만 보이게
-  if(isAdminParam || localStorage.getItem('adminAccess')==='1'){
-    document.getElementById('admin-block').style.display='block';
+  // 팀원용: admin 파라미터 없으면 관리자 박스 숨김
+  if(!isAdminLink){
+    const adminBlock = document.getElementById('admin-block');
+    if(adminBlock){
+      adminBlock.style.display = 'none';
+    }
   }
 })();
 </script>
