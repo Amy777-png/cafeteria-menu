@@ -346,13 +346,15 @@ document.getElementById('btn-import').addEventListener('click', ()=>{
   // 기본 화면: 오늘
   renderToday();
 
-  // 팀원용: admin 파라미터 없으면 관리자 박스 숨김
+// 팀원용: admin 파라미터 없으면 관리자 박스 숨김
+const adminBlock = document.getElementById('admin-block');
+if(adminBlock){
   if(!isAdminLink){
-    const adminBlock = document.getElementById('admin-block');
-    if(adminBlock){
-      adminBlock.style.display = 'none';
-    }
+    adminBlock.style.display = 'none';
+  } else {
+    adminBlock.style.display = 'block';
   }
+}
 })();
 </script>
 </body>
