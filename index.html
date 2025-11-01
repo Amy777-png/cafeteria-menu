@@ -26,7 +26,8 @@
     .day{margin-top:10px}
     .day h3{margin:0 0 6px;font-size:15px;color:#bfe2ff}
     .empty{color:#97a6b5}
-    .admin{margin-top:20px}
+    /* ✅ 관리자 블록은 기본적으로 안 보이게 */
+    .admin{margin-top:20px;display:none}
     details{border:1px solid #2b3b50;border-radius:12px}
     details[open]{background:#0f141b}
     summary{cursor:pointer;padding:12px 14px;font-weight:600}
@@ -57,7 +58,7 @@
 
       <div class="grid" id="view"></div>
 
-      <!-- 관리자 영역 -->
+      <!-- ✅ 관리자 영역: 기본 display:none -->
       <div class="admin" id="admin-block">
         <details>
           <summary>관리자 입력 / OCR (주말에 주간메뉴 등록)</summary>
@@ -65,7 +66,6 @@
             <div class="row">
               <input id="pin" type="password" placeholder="관리자 PIN (기본 2580)" style="max-width:200px"/>
               <button id="btn-auth">관리자 모드 전환</button>
-              <span class="hint">※ 팀원용 링크에서는 이 영역이 자동으로 숨겨집니다.</span>
             </div>
 
             <div id="admin-area" style="display:none">
@@ -75,7 +75,7 @@
               </div>
 
               <h3>1) 텍스트로 붙여넣기</h3>
-              <textarea id="txt" rows="8" placeholder="월) 김치찌개, 제육볶음\n화) 된장찌개, 생선구이 ..." style="width:100%"></textarea>
+              <textarea id="txt" rows="8" placeholder="월) ..., 화) ... 이런 식으로 붙여넣기" style="width:100%"></textarea>
               <div class="row">
                 <button id="btn-apply-text" class="primary">주간메뉴 저장</button>
               </div>
@@ -101,7 +101,7 @@
       </div>
 
       <div class="footer">
-        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다. 공유용 JSON을 Gist에 업로드하면 팀원 링크에 자동 반영됩니다.
+        데이터는 브라우저 <b>LocalStorage</b>에 저장됩니다.
       </div>
     </div>
   </div>
@@ -128,8 +128,11 @@ function renderToday(){
   const weekStr=['일','월','화','수','목','금','토'][today.getDay()];
   card.innerHTML=`<h2>오늘의 메뉴</h2><div class='date'>${key} (${weekStr})</div>`;
   const itemsDiv=document.createElement('div');itemsDiv.className='items';
-  if(data?.items?.length){data.items.forEach(t=>{const pill=document.createElement('div');pill.className='pill';pill.textContent=t.trim();itemsDiv.appendChild(pill);});}
-  else{const emp=document.createElement('div');emp.className='empty';emp.textContent='오늘 데이터가 없습니다.';itemsDiv.appendChild(emp);}
+  if(data?.items?.length){
+    data.items.forEach(t=>{const pill=document.createElement('div');pill.className='pill';pill.textContent=t.trim();itemsDiv.appendChild(pill);});
+  }else{
+    const emp=document.createElement('div');emp.className='empty';emp.textContent='오늘 데이터가 없습니다.';itemsDiv.appendChild(emp);
+  }
   card.appendChild(itemsDiv);view.appendChild(card);
 }
 
@@ -140,10 +143,18 @@ function renderWeek(){
   for(let i=0;i<5;i++){
     const d=addDays(monday,i);const key=fmtDate(d);
     const day=document.createElement('div');day.className='day';
-    const wname=weekdays[i];const head=document.createElement('h3');head.textContent=`${wname} (${key})`;day.appendChild(head);
+    const wname=weekdays[i];
+    const head=document.createElement('h3');head.textContent=`${wname} (${key})`;
+    day.appendChild(head);
     const data=db[key];
-    if(data?.items?.length){const items=document.createElement('div');items.className='items';data.items.forEach(t=>{const p=document.createElement('div');p.className='pill';p.textContent=t;items.appendChild(p);});day.appendChild(items);}
-    else{const emp=document.createElement('div');emp.className='empty';emp.textContent='등록된 메뉴 없음';day.appendChild(emp);}
+    if(data?.items?.length){
+      const items=document.createElement('div');items.className='items';
+      data.items.forEach(t=>{const p=document.createElement('div');p.className='pill';p.textContent=t;items.appendChild(p);});
+      day.appendChild(items);
+    }else{
+      const emp=document.createElement('div');emp.className='empty';emp.textContent='등록된 메뉴 없음';
+      day.appendChild(emp);
+    }
     wrap.appendChild(day);
   }
   view.appendChild(wrap);
@@ -152,21 +163,45 @@ function renderWeek(){
 function parseWeeklyText(raw){
   const blocks={};
   const pattern=/(월|화|수|목|금)[)\]:\s\-]*([^]*?)(?=(?:\n(?:화|수|목|금)\b)|$)/gm;
-  let m;while((m=pattern.exec(raw))){const day=m[1];const body=m[2].trim();if(!body) continue;
-    const items=body.split(/[,/\n·•\-]\s*/).map(s=>s.trim()).filter(Boolean);blocks[day]=items;}
+  let m;
+  while((m=pattern.exec(raw))){
+    const day=m[1];
+    const body=m[2].trim();
+    if(!body) continue;
+    const items=body.split(/[,/\n·•\-]\s*/).map(s=>s.trim()).filter(Boolean);
+    blocks[day]=items;
+  }
   return blocks;
 }
 function upsertWeek(blocks,weekMonday,source){
   const db=load();
-  for(let i=0;i<5;i++){const d=addDays(weekMonday,i);const key=fmtDate(d);const w=weekdays[i];const items=blocks[w]||[];if(items.length){db[key]={items,meta:{source,updated:new Date().toISOString()}};}}
+  for(let i=0;i<5;i++){
+    const d=addDays(weekMonday,i);
+    const key=fmtDate(d);
+    const w=weekdays[i];
+    const items=blocks[w]||[];
+    if(items.length){
+      db[key]={items,meta:{source,updated:new Date().toISOString()}};
+    }
+  }
   save(db);
 }
+
 let adminOn=false;
 function toggleAdmin(){
   const pinVal=document.getElementById('pin').value;
   const adminArea=document.getElementById('admin-area');
-  if(pinVal===PIN){adminOn=true;adminArea.style.display='block';setStatus('관리자 모드 활성화','ok');localStorage.setItem('adminAccess','1');}
-  else{adminOn=false;adminArea.style.display='none';setStatus('PIN 오류','danger');localStorage.removeItem('adminAccess');}
+  if(pinVal===PIN){
+    adminOn=true;
+    adminArea.style.display='block';
+    setStatus('관리자 모드 활성화','ok');
+    localStorage.setItem('adminAccess','1');
+  }else{
+    adminOn=false;
+    adminArea.style.display='none';
+    setStatus('PIN이 올바르지 않습니다.','danger');
+    localStorage.removeItem('adminAccess');
+  }
 }
 
 async function runOCR(){
@@ -181,8 +216,13 @@ async function runOCR(){
   document.getElementById('ocr-out').textContent=text.trim();
   const blocks=parseWeeklyText(text);
   const weekStart=document.getElementById('weekStart').value;
-  if(weekStart && Object.keys(blocks).length){upsertWeek(blocks,new Date(weekStart),'ocr');setStatus('OCR 결과 저장 완료','ok');renderWeek();}
-  else{setStatus('OCR 결과에서 요일을 찾지 못했습니다.','danger');}
+  if(weekStart && Object.keys(blocks).length){
+    upsertWeek(blocks,new Date(weekStart),'ocr');
+    setStatus('OCR 결과 저장 완료','ok');
+    renderWeek();
+  }else{
+    setStatus('OCR 텍스트에서 요일을 찾지 못했습니다.','danger');
+  }
 }
 
 document.getElementById('btn-today').addEventListener('click',()=>renderToday());
@@ -190,25 +230,70 @@ document.getElementById('btn-week').addEventListener('click',()=>renderWeek());
 document.getElementById('btn-auth').addEventListener('click',toggleAdmin);
 document.getElementById('btn-apply-text').addEventListener('click',()=>{
   if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
-  const raw=document.getElementById('txt').value||'';const weekStart=document.getElementById('weekStart').value;if(!weekStart)return;
-  const blocks=parseWeeklyText(raw);upsertWeek(blocks,new Date(weekStart),'text');setStatus('주간메뉴 저장 완료','ok');renderWeek();
+  const raw=document.getElementById('txt').value||'';
+  const weekStart=document.getElementById('weekStart').value;
+  if(!weekStart) return;
+  const blocks=parseWeeklyText(raw);
+  upsertWeek(blocks,new Date(weekStart),'text');
+  setStatus('주간메뉴 저장 완료','ok');
+  renderWeek();
 });
 document.getElementById('btn-ocr').addEventListener('click',runOCR);
+document.getElementById('btn-clear-week').addEventListener('click',()=>{
+  if(!adminOn) return setStatus('관리자 모드가 아닙니다','warn');
+  const v=document.getElementById('weekStart').value;
+  if(!v) return;
+  const db=load();
+  const mon=new Date(v);
+  for(let i=0;i<5;i++){
+    const key=fmtDate(addDays(mon,i));
+    delete db[key];
+  }
+  save(db);
+  setStatus('이번 주 데이터 삭제 완료','ok');
+  renderWeek();
+});
+document.getElementById('btn-export').addEventListener('click',()=>{
+  const db=load();
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cafeteria-backup.json';
+  a.click();
+});
+document.getElementById('btn-import').addEventListener('click',()=>{
+  const f=document.getElementById('importFile').files?.[0];
+  if(!f) return setStatus('가져올 JSON 파일을 선택하세요.','warn');
+  const r=new FileReader();
+  r.onload=()=>{try{const obj=JSON.parse(r.result);save(obj);setStatus('백업 복원 완료','ok');renderWeek();}catch(e){setStatus('JSON 파싱 오류','danger');}};
+  r.readAsText(f);
+});
 
 (async ()=>{
   const qp=new URLSearchParams(location.search);
   const isAdminParam=qp.get('admin')==='1';
   const hasAdminHash=location.hash.includes('admin');
+
+  // 1) 데이터Url 있으면 먼저 끌어온다
   if(dataUrl){
-    try{const res=await fetch(dataUrl,{cache:'no-store'});const obj=await res.json();save(obj);setStatus('공유 데이터 적용됨','ok');}
-    catch(e){console.error(e);setStatus('공유 데이터 불러오기 실패','danger');}
+    try{
+      const res=await fetch(dataUrl,{cache:'no-store'});
+      const obj=await res.json();
+      save(obj);
+      setStatus('공유 데이터 적용됨','ok');
+    }catch(e){
+      console.error(e);
+      setStatus('공유 데이터 불러오기 실패','danger');
+    }
   }
+
+  // 2) 기본 화면
   renderToday();
 
-  // ✅ 관리자 자동 숨김 로직
-  const adminEl=document.querySelector('.admin');
+  // 3) ✅ 관리자 보이기 조건
+  const adminEl=document.getElementById('admin-block');
   if(adminEl){
-    if(isAdminParam||hasAdminHash||localStorage.getItem('adminAccess')==='1'){
+    if(isAdminParam || hasAdminHash || localStorage.getItem('adminAccess')==='1'){
       adminEl.style.display='block';
     }else{
       adminEl.style.display='none';
@@ -218,4 +303,3 @@ document.getElementById('btn-ocr').addEventListener('click',runOCR);
 </script>
 </body>
 </html>
-
